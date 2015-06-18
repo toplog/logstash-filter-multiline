@@ -114,6 +114,10 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
   # Optional.
   config :periodic_flush, :validate => :boolean, :default => true
 
+  # Place multiline text into separate 'trace' field
+  # Optional.
+  config :trace, :validate => :boolean, :default => false
+
   # Register default pattern paths
   @@patterns_path = Set.new
   @@patterns_path += [LogStash::Patterns::Core.path]
@@ -222,7 +226,11 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
     if match
       # previous previous line is part of this event. append it to the event and cancel it
       event.tag(MULTILINE_TAG)
-      pending << event
+      if @trace
+        (pending["trace"] ||= "") << event["message"] << "\n"
+      else
+        pending << event
+      end
       event.cancel
     else
       # this line is not part of the previous event if we have a pending event, it's done, send it.
