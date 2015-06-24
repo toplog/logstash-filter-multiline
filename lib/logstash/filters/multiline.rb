@@ -144,7 +144,7 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
   def register
     require "grok-pure" # rubygem 'jls-grok'
 
-    unless dynamic_pattern
+    unless @dynamic_pattern
       @grok = Grok.new
 
       @patterns_dir = @@patterns_path.to_a + @patterns_dir
@@ -176,7 +176,7 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
   def filter(event)
     return unless filter?(event)
 
-    unless dynamic_pattern
+    unless @dynamic_pattern
       match = event[@source].is_a?(Array) ? @grok.match(event[@source].first) : @grok.match(event[@source])
       match = (match && !@negate) || (!match && @negate) # add negate option
     else
