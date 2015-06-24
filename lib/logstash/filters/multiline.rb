@@ -184,7 +184,7 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
 
     match = (match && !@negate) || (!match && @negate) # add negate option
 
-    @logger.debug? && @logger.debug("Multiline", :pattern => @pattern, :message => event[@source], :match => match, :negate => @negate)
+    @logger.debug? && @logger.debug("Multiline", :pattern => event.sprintf(@pattern), :message => event[@source], :match => match, :negate => @negate)
 
     multiline_filter!(event, match)
 
