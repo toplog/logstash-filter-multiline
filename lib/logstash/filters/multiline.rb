@@ -178,10 +178,11 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
 
     unless @dynamic_pattern
       match = event[@source].is_a?(Array) ? @grok.match(event[@source].first) : @grok.match(event[@source])
-      match = (match && !@negate) || (!match && @negate) # add negate option
     else
       match = Regexp.new(event.sprintf(@pattern)).match(event["message"])
     end
+
+    match = (match && !@negate) || (!match && @negate) # add negate option
 
     @logger.debug? && @logger.debug("Multiline", :pattern => @pattern, :message => event[@source], :match => match, :negate => @negate)
 
