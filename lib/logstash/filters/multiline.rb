@@ -79,6 +79,9 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
   # Negate the regexp pattern ('if not matched')
   config :negate, :validate => :boolean, :default => false
 
+  # Needed to use field for pattern
+  config :dynamic_pattern, :validate => :boolean, :default => false
+
   # The stream identity is how the multiline filter determines which stream an
   # event belongs to. This is generally used for differentiating, say, events
   # coming from multiple files in the same file input, or multiple connections
@@ -141,18 +144,20 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
   def register
     require "grok-pure" # rubygem 'jls-grok'
 
-    @grok = Grok.new
+    unless dynamic_pattern?
+      @grok = Grok.new
 
-    @patterns_dir = @@patterns_path.to_a + @patterns_dir
-    @patterns_dir.each do |path|
-      path = File.join(path, "*") if File.directory?(path)
-      Dir.glob(path).each do |file|
-        @logger.info("Grok loading patterns from file", :path => file)
-        @grok.add_patterns_from_file(file)
+      @patterns_dir = @@patterns_path.to_a + @patterns_dir
+      @patterns_dir.each do |path|
+        path = File.join(path, "*") if File.directory?(path)
+        Dir.glob(path).each do |file|
+          @logger.info("Grok loading patterns from file", :path => file)
+          @grok.add_patterns_from_file(file)
+        end
       end
-    end
 
-    @grok.compile(@pattern)
+      @grok.compile(@pattern)
+    end
 
     case @what
     when "previous"
@@ -171,8 +176,12 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
   def filter(event)
     return unless filter?(event)
 
-    match = event[@source].is_a?(Array) ? @grok.match(event[@source].first) : @grok.match(event[@source])
-    match = (match && !@negate) || (!match && @negate) # add negate option
+    unless dynamic_pattern?
+      match = event[@source].is_a?(Array) ? @grok.match(event[@source].first) : @grok.match(event[@source])
+      match = (match && !@negate) || (!match && @negate) # add negate option
+    else
+      match = Regexp.new(event.sprintf(@pattern)).match(event["message"])
+    end
 
     @logger.debug? && @logger.debug("Multiline", :pattern => @pattern, :message => event[@source], :match => match, :negate => @negate)
 
