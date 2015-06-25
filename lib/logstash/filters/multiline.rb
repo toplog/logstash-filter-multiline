@@ -237,7 +237,11 @@ class LogStash::Filters::Multiline < LogStash::Filters::Base
       # previous previous line is part of this event. append it to the event and cancel it
       event.tag(MULTILINE_TAG)
       if @trace
-        (pending["trace"] ||= "") << event["message"] << "\n"
+        if pending
+          (pending["trace"] ||= "") << event["message"] << "\n"
+        else
+          @pending[key] = event
+        end
       else
         pending << event
       end
